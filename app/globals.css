@@ -531,6 +531,177 @@ a {
   margin-top: 8px;
 }
 
+.contribution-panel {
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.calendar-summary {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: right;
+}
+
+.calendar-summary strong {
+  color: var(--green-strong);
+  font-family: var(--mono);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.calendar-summary span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.contribution-body {
+  padding: 18px 20px 16px;
+}
+
+.contribution-scroll {
+  --calendar-cell: 13px;
+  overflow-x: auto;
+  padding: 2px 0 6px;
+}
+
+.month-row {
+  color: var(--muted);
+  display: grid;
+  font-family: var(--mono);
+  font-size: 11px;
+  gap: 3px;
+  margin-left: 26px;
+  min-width: max-content;
+}
+
+.month-row span {
+  height: 18px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.calendar-matrix {
+  display: flex;
+  gap: 8px;
+  min-width: max-content;
+}
+
+.weekday-column,
+.contribution-week {
+  display: grid;
+  gap: 3px;
+  grid-template-rows: repeat(7, var(--calendar-cell));
+}
+
+.weekday-column {
+  color: var(--muted);
+  flex: 0 0 18px;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: var(--calendar-cell);
+  text-align: right;
+}
+
+.contribution-grid {
+  display: grid;
+  gap: 3px;
+  min-width: max-content;
+}
+
+.contribution-day {
+  background: rgba(29, 37, 33, 0.07);
+  border: 1px solid rgba(29, 37, 33, 0.08);
+  border-radius: 2px;
+  display: inline-block;
+  height: var(--calendar-cell, 13px);
+  min-height: 0;
+  padding: 0;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  width: var(--calendar-cell, 13px);
+}
+
+button.contribution-day:hover:not(:disabled) {
+  border-color: rgba(17, 66, 47, 0.66);
+  box-shadow: 0 0 0 3px rgba(30, 107, 79, 0.12);
+  transform: scale(1.14);
+}
+
+button.contribution-day:disabled {
+  background: rgba(29, 37, 33, 0.035);
+  border-color: rgba(29, 37, 33, 0.045);
+}
+
+.contribution-day.is-selected {
+  border-color: #1d2521;
+  box-shadow: 0 0 0 2px rgba(255, 250, 240, 0.96), 0 0 0 4px rgba(29, 37, 33, 0.8);
+}
+
+.contribution-day.level-1 {
+  background: #b9dfbd;
+  border-color: rgba(30, 107, 79, 0.12);
+}
+
+.contribution-day.level-2 {
+  background: #75bd87;
+  border-color: rgba(30, 107, 79, 0.16);
+}
+
+.contribution-day.level-3 {
+  background: #2f865f;
+  border-color: rgba(17, 66, 47, 0.22);
+}
+
+.contribution-day.level-4 {
+  background: #11422f;
+  border-color: rgba(17, 66, 47, 0.34);
+}
+
+.calendar-footer {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.calendar-legend {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
+}
+
+.calendar-skeleton {
+  display: grid;
+  gap: 10px;
+}
+
+.calendar-skeleton span {
+  animation: pulse 1.2s ease-in-out infinite;
+  background: rgba(29, 37, 33, 0.07);
+  border-radius: 6px;
+  height: 14px;
+}
+
+.calendar-skeleton span:nth-child(2) {
+  width: 88%;
+}
+
+.calendar-skeleton span:nth-child(3) {
+  width: 74%;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.42;
+  }
+}
+
 .timeline {
   list-style: none;
   margin: 0;
@@ -809,6 +980,10 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .contribution-body {
+    padding: 16px;
+  }
+
   .grid-layout,
   .single-column,
   .author-workbench {
@@ -820,10 +995,16 @@ a {
   .topbar,
   .panel-header,
   .author-heading,
-  .project-commit-heading {
+  .project-commit-heading,
+  .calendar-footer {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .calendar-summary {
+    align-items: flex-start;
+    text-align: left;
   }
 
   .topbar-actions,

@@ -3,6 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface ContributionDay {
+  date: string;
+  count: number;
+  isFuture: boolean;
+}
+
+interface ContributionCalendar {
+  days: ContributionDay[];
+  startDate: string;
+  endDate: string;
+  activeDays: number;
+  totalCommits: number;
+  maxCount: number;
+}
+
 interface Commit {
   hash: string;
   author: string;
@@ -10,10 +25,39 @@ interface Commit {
   message: string;
 }
 
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateKey = (date: string) => new Date(`${date}T00:00:00`);
+
+const getCommitLevel = (count: number, maxCount: number) => {
+  if (count === 0) return 0;
+  if (maxCount <= 1) return 4;
+
+  return Math.max(1, Math.ceil((count / maxCount) * 4));
+};
+
+const chunkByWeek = (days: ContributionDay[]) => {
+  const weeks: ContributionDay[][] = [];
+  for (let index = 0; index < days.length; index += 7) {
+    weeks.push(days.slice(index, index + 7));
+  }
+
+  return weeks;
+};
+
+const monthLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
+
 export default function ProjectDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [commits, setCommits] = useState<Commit[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [contributionCalendar, setContributionCalendar] = useState<ContributionCalendar | null>(null);
+  const [selectedDate, setSelectedDate] = useState(formatDateKey(new Date()));
   const [sortBy, setSortBy] = useState<'author' | 'date'>('date');
   const [projectName, setProjectName] = useState('');
   const [projectBranch, setProjectBranch] = useState('');
@@ -38,6 +82,7 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
         if (response.ok) {
           const data = await response.json();
           setCommits(data.commits);
+          setContributionCalendar(data.contributionCalendar);
           setProjectBranch(data.projectBranch);
           setProjectName(data.projectName);
         } else {
@@ -70,6 +115,13 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
   };
 
   const authors = Array.from(new Set(commits.map((commit) => commit.author)));
+  const calendarWeeks = contributionCalendar ? chunkByWeek(contributionCalendar.days) : [];
+  const calendarMonthLabels = calendarWeeks.map((week, index) => {
+    const firstMonthDay = week.find((day) => parseDateKey(day.date).getDate() <= 7);
+    if (!firstMonthDay || index === 0) return '';
+
+    return monthLabels[parseDateKey(firstMonthDay.date).getMonth()];
+  });
 
   return (
     <main className="app-shell">
@@ -106,6 +158,92 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
               <strong>{authors.length}</strong>
               <span>Authors</span>
             </div>
+          </div>
+        </section>
+
+        <section className="panel contribution-panel">
+          <div className="panel-header">
+            <div>
+              <h2 className="panel-title">Contribution Calendar</h2>
+              <span className="panel-kicker">最近一年的提交热力</span>
+            </div>
+            {contributionCalendar && (
+              <div className="calendar-summary" aria-label="提交日历概览">
+                <strong>{contributionCalendar.totalCommits}</strong>
+                <span>commits / {contributionCalendar.activeDays} active days</span>
+              </div>
+            )}
+          </div>
+
+          <div className="contribution-body">
+            {contributionCalendar ? (
+              <>
+                <div className="contribution-scroll" aria-label="提交日历，可点击日期查看当天提交">
+                  <div
+                    className="month-row"
+                    style={{ gridTemplateColumns: `repeat(${calendarWeeks.length}, var(--calendar-cell))` }}
+                    aria-hidden="true"
+                  >
+                    {calendarMonthLabels.map((label, index) => (
+                      <span key={`${label}-${index}`}>{label}</span>
+                    ))}
+                  </div>
+
+                  <div className="calendar-matrix">
+                    <div className="weekday-column" aria-hidden="true">
+                      {weekdayLabels.map((day, index) => (
+                        <span key={day}>{index % 2 === 1 ? day : ''}</span>
+                      ))}
+                    </div>
+                    <div
+                      className="contribution-grid"
+                      style={{ gridTemplateColumns: `repeat(${calendarWeeks.length}, var(--calendar-cell))` }}
+                    >
+                      {calendarWeeks.map((week, weekIndex) => (
+                        <div className="contribution-week" key={`week-${weekIndex}`}>
+                          {week.map((day) => {
+                            const level = getCommitLevel(day.count, contributionCalendar.maxCount);
+                            const isSelected = day.date === selectedDate;
+                            const title = day.isFuture
+                              ? `${day.date} 尚未到来`
+                              : `${day.date} 有 ${day.count} 条提交`;
+
+                            return (
+                              <button
+                                type="button"
+                                key={day.date}
+                                className={`contribution-day level-${level}${isSelected ? ' is-selected' : ''}`}
+                                aria-label={title}
+                                title={title}
+                                disabled={day.isFuture}
+                                onClick={() => setSelectedDate(day.date)}
+                              />
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="calendar-footer">
+                  <span>{contributionCalendar.startDate} 至 {contributionCalendar.endDate}</span>
+                  <div className="calendar-legend" aria-label="提交强度图例">
+                    <span>少</span>
+                    {[0, 1, 2, 3, 4].map((level) => (
+                      <i key={level} className={`contribution-day level-${level}`} aria-hidden="true" />
+                    ))}
+                    <span>多</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="calendar-skeleton">
+                <span />
+                <span />
+                <span />
+              </div>
+            )}
           </div>
         </section>
 
