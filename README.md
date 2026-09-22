@@ -2,6 +2,16 @@
 
 Git View 是一个本地 Git 项目提交记录查看工具，基于 Next.js 构建。它可以接入本机多个 Git 仓库，并按日期、作者、项目维度查看提交记录，适合做每日工作回顾、提交汇总和日报整理。
 
+## 界面预览
+
+主页（项目列表，支持主题自定义与侧边功能 dock）：
+
+![主页项目列表](public/screenshots/home.png)
+
+作者视图（按日期查看各仓库作者提交，支持一键复制）：
+
+![作者视图](public/screenshots/authors-today.png)
+
 ## 功能
 
 - 添加本地 Git 仓库路径，并保存到 `projects.json`
