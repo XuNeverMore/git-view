@@ -1,7 +1,10 @@
 'use client';
 
+import 'react-day-picker/style.css';
+
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { DayPicker } from 'react-day-picker';
 
 interface Commit {
   hash: string;
@@ -35,12 +38,39 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
+const toDate = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+const toDateString = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function TodayAuthorsPage() {
+  const [selectedDate, setSelectedDate] = useState(getLocalDate());
   const [data, setData] = useState<AuthorData | null>(null);
   const [selectedAuthor, setSelectedAuthor] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [copyNote, setCopyNote] = useState('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        setIsCalendarOpen(false);
+      }
+    };
+    if (isCalendarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isCalendarOpen]);
 
   useEffect(() => {
     const fetchAuthorCommits = async () => {
@@ -53,7 +83,7 @@ export default function TodayAuthorsPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ date: getLocalDate() }),
+          body: JSON.stringify({ date: selectedDate }),
         });
 
         if (response.ok) {
@@ -73,7 +103,7 @@ export default function TodayAuthorsPage() {
     };
 
     fetchAuthorCommits();
-  }, []);
+  }, [selectedDate]);
 
   const selectedProjectCommits = useMemo(() => {
     if (!data || !selectedAuthor) return [];
@@ -118,7 +148,6 @@ export default function TodayAuthorsPage() {
           <Link href="/" className="back-button">
             &lt;- 返回项目列表
           </Link>
-          <div className="status-strip">{data?.date || 'TODAY'}</div>
         </header>
 
         <section className="detail-hero">
@@ -127,20 +156,36 @@ export default function TodayAuthorsPage() {
               <span className="brand-dot" />
               <span>Author Radar</span>
             </div>
-            <h1>按作者查看今日所有项目提交</h1>
+            <h1>按作者查看提交</h1>
             <p className="detail-subtitle">
-              从所有已添加仓库里拉取今天的 Git log，选择一个作者后按项目分组查看他参与的提交。
+              从所有已添加仓库里拉取指定日期的 Git log，选择一个作者后按项目分组查看他参与的提交。
             </p>
           </div>
-          <div className="metric-board" aria-label="今日作者概览">
-            <div className="metric">
-              <strong>{isLoading ? '..' : data?.authors.length || 0}</strong>
-              <span>Authors</span>
-            </div>
-            <div className="metric">
-              <strong>{isLoading ? '..' : data?.totalCommits || 0}</strong>
-              <span>Commits</span>
-            </div>
+          <div className="hero-date-block" ref={calendarRef}>
+            <button
+              type="button"
+              className="hero-date-label"
+              onClick={() => setIsCalendarOpen((v) => !v)}
+            >
+              <span className="hero-date-value">{selectedDate}</span>
+              <span className="hero-date-hint">点击切换日期</span>
+            </button>
+            {isCalendarOpen && (
+              <div className="hero-calendar-popover">
+                <DayPicker
+                  mode="single"
+                  selected={toDate(selectedDate)}
+                  onSelect={(day) => {
+                    if (day) {
+                      setSelectedDate(toDateString(day));
+                      setIsCalendarOpen(false);
+                    }
+                  }}
+                  disabled={{ after: new Date() }}
+                  showOutsideDays
+                />
+              </div>
+            )}
           </div>
         </section>
 
@@ -156,12 +201,12 @@ export default function TodayAuthorsPage() {
             {isLoading ? (
               <div className="empty-state">
                 <strong>正在汇总作者</strong>
-                <span>正在扫描所有项目今日提交。</span>
+                <span>正在扫描所有项目 {selectedDate} 的提交。</span>
               </div>
             ) : !data || data.authors.length === 0 ? (
               <div className="empty-state">
-                <strong>今日暂无作者</strong>
-                <span>当前已添加项目今天没有提交。</span>
+                <strong>该日期暂无作者</strong>
+                <span>当前已添加项目在 {selectedDate} 没有提交。</span>
               </div>
             ) : (
               <div className="author-list">
